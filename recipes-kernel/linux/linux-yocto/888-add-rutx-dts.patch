@@ -1,0 +1,308 @@
+From 094a5d18b5467f63d2619113e52e2f3046276682 Mon Sep 17 00:00:00 2001
+From: OpenEmbedded <oe.patch@oe>
+Date: Tue, 11 Aug 2020 00:37:59 +0000
+Subject: [PATCH] add-rutx-device-tree-source
+
+---
+ arch/arm/boot/dts/qcom-ipq4018-rutx.dts | 289 ++++++++++++++++++++++++
+ 1 file changed, 289 insertions(+)
+ create mode 100644 arch/arm/boot/dts/qcom-ipq4018-rutx.dts
+
+diff --git a/arch/arm/boot/dts/qcom-ipq4018-rutx.dts b/arch/arm/boot/dts/qcom-ipq4018-rutx.dts
+new file mode 100644
+index 000000000000..ba470654052e
+--- /dev/null
++++ b/arch/arm/boot/dts/qcom-ipq4018-rutx.dts
+@@ -0,0 +1,289 @@
++/* Copyright (c) 2015, The Linux Foundation. All rights reserved.
++ *
++ * Permission to use, copy, modify, and/or distribute this software for any
++ * purpose with or without fee is hereby granted, provided that the above
++ * copyright notice and this permission notice appear in all copies.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
++ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
++ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
++ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
++ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
++ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
++ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
++ *
++ */
++
++#include "qcom-ipq4019-ap.dk01.1.dtsi"
++#include <dt-bindings/gpio/gpio.h>
++
++/ {
++	model = "Teltonika, Inc. RUTX";
++	compatible = "teltonika,rutx", "qcom,ap-dk01.1-c2", "qcom,ipq4019";
++
++	memory {
++		device_type = "memory";
++		reg = <0x80000000 0x10000000>;
++	};
++
++	soc {
++		mdio@90000 {
++			status = "ok";
++			pinctrl-0 = <&mdio_pins>;
++			pinctrl-names = "default";
++			phy-reset-gpio = <&tlmm 62 0>;
++		};
++
++		pinctrl@1000000 {
++			mdio_pins: mdio_pinmux {
++				mux_1 {
++					pins = "gpio53";
++					function = "mdio";
++					bias-pull-up;
++				};
++				mux_2 {
++					pins = "gpio52";
++					function = "mdc";
++					bias-pull-up;
++				};
++			};
++
++			i2c_0_pins: i2c_0_pinmux {
++				mux {
++					pins = "gpio58", "gpio59";
++					function = "blsp_i2c0";
++					bias-disable;
++				};
++			};
++		};
++
++		i2c_0: i2c@78b7000 { /* BLSP1 QUP2 */
++			pinctrl-0 = <&i2c_0_pins>;
++			pinctrl-names = "default";
++			clock-frequency = <400000>;
++			status = "ok";
++
++			stm32_io: stm32@74 {
++				#gpio-cells = <2>;
++				compatible = "tlt,stm32v1";
++				reg = <0x74>;
++				gpio-controller;
++				interrupt-parent = <&tlmm>;
++				interrupts = <5 2>;
++				interrupt-controller;
++				#interrupt-cells = <2>;
++			};
++		};
++
++		spi_0: spi@78b5000 {
++			cs-gpios = <&tlmm 54 0>, <&tlmm 63 0>;
++			num-cs = <2>;
++	
++			mx25l25635f@0 {
++				compatible = "n25q128a11", "mx25l25635f", "jedec,spi-nor";
++				#address-cells = <1>;
++				#size-cells = <1>;
++				reg = <0>;
++				spi-max-frequency = <24000000>;
++			};
++	
++			mt29f@1 {
++				#address-cells = <1>;
++				#size-cells = <1>;
++				compatible = "spinand,mt29f";
++				reg = <1>;
++				spi-max-frequency = <24000000>;
++			};
++		};
++
++		gpio-export {
++			compatible = "gpio-export";
++			#size-cells = <0>;
++
++			gpio_modem_reset {
++				gpio-export,name = "modem_reset";
++				gpio-export,output = <0>;
++				gpios = <&stm32_io 21 GPIO_ACTIVE_HIGH>;
++			};
++
++			gpio_modem_power {
++				gpio-export,name = "modem_power";
++				gpio-export,output = <1>;
++				gpios = <&stm32_io 20 GPIO_ACTIVE_HIGH>;
++			};
++
++			gpio_modem2_reset {
++				gpio-export,name = "modem2_reset";
++				gpio-export,output = <0>;
++				gpios = <&stm32_io 13 GPIO_ACTIVE_HIGH>;
++			};
++
++			gpio_modem2_power {
++				gpio-export,name = "modem2_power";
++				gpio-export,output = <1>;
++				gpios = <&stm32_io 14 GPIO_ACTIVE_HIGH>;
++			};
++
++			gpio_sim_select {
++				gpio-export,name = "sim_sel";
++				gpio-export,output = <1>;
++				gpios = <&stm32_io 22 GPIO_ACTIVE_LOW>;
++			};
++
++			gpio_out_1 {
++				gpio-export,name = "gpio23";
++				gpio-export,output = <0>;
++				gpio-export,direction_may_change;
++				gpios = <&stm32_io 23 GPIO_ACTIVE_HIGH>;
++			};
++
++			gpio_in_1 {
++				gpio-export,name = "gpio24";
++				gpio-export,input = <0>;
++				gpio-export,direction_may_change;
++				gpios = <&stm32_io 24 GPIO_ACTIVE_LOW>;
++			};
++		};
++
++		leds {
++			compatible = "gpio-leds";
++
++			led_wan_sim1 {
++				label = "wan_sim_1";
++				gpios = <&stm32_io 0 GPIO_ACTIVE_HIGH>;
++			};
++
++			led_wan_sim2 {
++				label = "wan_sim_2";
++				gpios = <&stm32_io 1 GPIO_ACTIVE_HIGH>;
++			};
++
++			led_wan_eth {
++				label = "wan_eth_3";
++				gpios = <&stm32_io 2 GPIO_ACTIVE_HIGH>;
++			};
++
++			led_wan_wifi {
++				label = "wan_wifi_4";
++				gpios = <&stm32_io 3 GPIO_ACTIVE_HIGH>;
++			};
++
++			led_wan_mob {
++				label = "wan_mob_5";
++				gpios = <&stm32_io 16 GPIO_ACTIVE_HIGH>;
++			};
++
++			led_gen_2 {
++				label = "mob_gen_2";
++				gpios = <&stm32_io 4 GPIO_ACTIVE_HIGH>;
++			};
++
++			led_gen_3 {
++				label = "mob_gen_3";
++				gpios = <&stm32_io 5 GPIO_ACTIVE_HIGH>;
++			};
++
++			led_gen_4 {
++				label = "mob_gen_4";
++				gpios = <&stm32_io 6 GPIO_ACTIVE_HIGH>;
++			};
++
++			led2_gen_2 {
++				label = "mob2_gen_2";
++				gpios = <&stm32_io 32 GPIO_ACTIVE_HIGH>;
++			};
++
++			led2_gen_3 {
++				label = "mob2_gen_3";
++				gpios = <&stm32_io 33 GPIO_ACTIVE_HIGH>;
++			};
++
++			led2_gen_4 {
++				label = "mob2_gen_4";
++				gpios = <&stm32_io 34 GPIO_ACTIVE_HIGH>;
++			};
++
++			led_ssid_1 {
++				label = "mob_ssid_1";
++				gpios = <&stm32_io 7 GPIO_ACTIVE_HIGH>;
++				linux,default-trigger = "timer";
++			};
++
++			led_ssid_2 {
++				label = "mob_ssid_2";
++				gpios = <&stm32_io 8 GPIO_ACTIVE_HIGH>;
++				linux,default-trigger = "timer";
++			};
++
++			led_ssid_3 {
++				label = "mob_ssid_3";
++				gpios = <&stm32_io 9 GPIO_ACTIVE_HIGH>;
++				linux,default-trigger = "timer";
++			};
++
++			led_ssid_4 {
++				label = "mob_ssid_4";
++				gpios = <&stm32_io 10 GPIO_ACTIVE_HIGH>;
++				linux,default-trigger = "timer";
++			};
++
++			led_ssid_5 {
++				label = "mob_ssid_5";
++				gpios = <&stm32_io 11 GPIO_ACTIVE_HIGH>;
++				linux,default-trigger = "timer";
++			};
++
++			led2_ssid_1 {
++				label = "mob2_ssid_1";
++				gpios = <&stm32_io 31 GPIO_ACTIVE_HIGH>;
++				linux,default-trigger = "timer";
++			};
++
++			led2_ssid_3 {
++				label = "mob2_ssid_3";
++				gpios = <&stm32_io 30 GPIO_ACTIVE_HIGH>;
++				linux,default-trigger = "timer";
++			};
++
++			led2_ssid_5 {
++				label = "mob2_ssid_5";
++				gpios = <&stm32_io 29 GPIO_ACTIVE_HIGH>;
++				linux,default-trigger = "timer";
++			};
++
++			led_wifi_24 {
++				label = "wifi_gen_2";
++				gpios = <&stm32_io 19 GPIO_ACTIVE_HIGH>;
++			};
++
++			led_wifi_50 {
++				label = "wifi_gen_5";
++				gpios = <&stm32_io 18 GPIO_ACTIVE_HIGH>;
++			};
++		};
++
++		gpio_keys {
++			compatible = "gpio-keys";
++
++			reset {
++				label = "reset";
++				gpios = <&tlmm 4 1>;
++				linux,code = <0x198>;
++			};
++		};
++
++		usb3: usb3@8af8800 {
++			dwc3@8a00000 {
++				snps,dis_u2_susphy_quirk;
++				snps,dis_u3_susphy_quirk;
++			};
++		};
++
++		usb2: usb2@60f8800 {
++			dwc3@6000000 {
++				snps,dis_u2_susphy_quirk;
++			};
++		};
++
++	};
++};
+-- 
+2.17.1
+
