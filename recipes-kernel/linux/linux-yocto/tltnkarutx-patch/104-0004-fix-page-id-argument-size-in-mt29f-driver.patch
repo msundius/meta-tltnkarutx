@@ -1,0 +1,56 @@
+--- a/drivers/staging/mt29f_spinand/mt29f_spinand.c
++++ b/drivers/staging/mt29f_spinand/mt29f_spinand.c
+@@ -671,7 +671,7 @@
+ 	return ret;
+ }
+ 
+-static int spinand_read_page_to_cache(struct spi_device *spi_nand, u16 page_id)
++static int spinand_read_page_to_cache(struct spi_device *spi_nand, u32 page_id)
+ {
+ 	struct spinand_cmd cmd = {0};
+ 	struct spinand_ops *dev_ops = get_dev_ops(spi_nand);
+@@ -693,7 +693,7 @@
+  *   locations.
+  *   No tRd delay.
+  */
+-static int spinand_read_from_cache(struct spi_device *spi_nand, u16 page_id,
++static int spinand_read_from_cache(struct spi_device *spi_nand, u32 page_id,
+ 				   u16 byte_id, u16 len, u8 *rbuf)
+ {
+ 	struct spinand_cmd cmd = {0};
+@@ -722,7 +722,7 @@
+  *   The read includes two commands to the Nand: 0x13 and 0x03 commands
+  *   Poll to read status to wait for tRD time.
+  */
+-static int spinand_read_page(struct spi_device *spi_nand, u16 page_id,
++static int spinand_read_page(struct spi_device *spi_nand, u32 page_id,
+ 			     u32 offset, u32 len, u8 *rbuf)
+ {
+ 	int ret, ecc_error = 0, ecc_corrected = 0;
+@@ -803,7 +803,7 @@
+  *   Since it is writing the data to cache, there is no tPROG time.
+  */
+ static int spinand_program_data_to_cache(struct spi_device *spi_nand,
+-					 u16 page_id, u16 byte_id,
++					 u32 page_id, u16 byte_id,
+ 					 u16 len, u8 *wbuf)
+ {
+ 	struct spinand_cmd cmd = {0};
+@@ -831,7 +831,7 @@
+  *   the Nand array.
+  *   Need to wait for tPROG time to finish the transaction.
+  */
+-static int spinand_program_execute(struct spi_device *spi_nand, u16 page_id)
++static int spinand_program_execute(struct spi_device *spi_nand, u32 page_id)
+ {
+ 	struct spinand_cmd cmd = {0};
+ 	struct spinand_ops *dev_ops = get_dev_ops(spi_nand);
+@@ -859,7 +859,7 @@
+  *   Poll to wait for the tPROG time to finish the transaction.
+  */
+ static int spinand_program_page(struct spi_device *spi_nand,
+-				u16 page_id, u16 offset, u16 len, u8 *buf)
++				u32 page_id, u16 offset, u16 len, u8 *buf)
+ {
+ 	int retval = 0;
+ 	u8 status = 0;

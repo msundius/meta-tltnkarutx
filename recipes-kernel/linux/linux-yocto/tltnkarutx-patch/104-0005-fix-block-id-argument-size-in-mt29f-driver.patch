@@ -1,0 +1,20 @@
+--- a/drivers/staging/mt29f_spinand/mt29f_spinand.c
++++ b/drivers/staging/mt29f_spinand/mt29f_spinand.c
+@@ -955,7 +955,7 @@
+  *   one block--64 pages
+  *   Need to wait for tERS.
+  */
+-static int spinand_erase_block_erase(struct spi_device *spi_nand, u16 block_id)
++static int spinand_erase_block_erase(struct spi_device *spi_nand, u32 block_id)
+ {
+ 	struct spinand_cmd cmd = {0};
+ 	struct spinand_ops *dev_ops = get_dev_ops(spi_nand);
+@@ -980,7 +980,7 @@
+  *   and then send the 0xd8 erase command
+  *   Poll to wait for the tERS time to complete the tranaction.
+  */
+-static int spinand_erase_block(struct spi_device *spi_nand, u16 block_id)
++static int spinand_erase_block(struct spi_device *spi_nand, u32 block_id)
+ {
+ 	int retval;
+ 	u8 status = 0;

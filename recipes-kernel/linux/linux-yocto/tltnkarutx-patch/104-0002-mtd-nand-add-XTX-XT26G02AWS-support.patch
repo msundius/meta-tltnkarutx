@@ -1,0 +1,35 @@
+--- a/drivers/mtd/nand/raw/nand_ids.c
++++ b/drivers/mtd/nand/raw/nand_ids.c
+@@ -62,6 +62,9 @@
+ 		{ .id = {0xef, 0xab} },
+ 		  SZ_2K, SZ_256, SZ_128K, NAND_NO_SUBPAGE_WRITE,
+ 		  2, 64 },
++	{"XT26G02AWS 256MiB 3.3V",
++		  { .id = {0x0b, 0xE2} },
++		  SZ_2K, SZ_256, SZ_128K, 0, 2, 64 },
+ 
+ 
+ 
+@@ -195,6 +198,9 @@
+ 	{NAND_MFR_INTEL, "Intel"},
+ 	{NAND_MFR_ATO, "ATO"},
+ 	{NAND_MFR_WINBOND, "Winbond"},
++	{NAND_MFR_GIGA, "GigaDevice"},
++	{NAND_MFR_FUDAN, "Fudan"},
++	{NAND_MFR_XTX, "XTX"},
+ };
+ 
+ /**
+--- a/drivers/mtd/nand/raw/internals.h
++++ b/drivers/mtd/nand/raw/internals.h
+@@ -32,6 +32,9 @@
+ #define NAND_MFR_STMICRO	0x20
+ #define NAND_MFR_TOSHIBA	0x98
+ #define NAND_MFR_WINBOND	0xef
++#define NAND_MFR_GIGA		0xc8
++#define NAND_MFR_FUDAN		0xa1
++#define NAND_MFR_XTX		0x0b
+ 
+ 
+ /*
+

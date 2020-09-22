@@ -1,0 +1,202 @@
+--- a/drivers/net/phy/ar40xx.c
++++ b/drivers/net/phy/ar40xx.c
+@@ -1285,6 +1285,7 @@
+ ar40xx_hw_init(struct ar40xx_priv *priv)
+ {
+ 	u32 i;
++	struct mii_bus *bus = priv->mii_bus;
+ 
+ 	ar40xx_ess_reset(priv);
+ 
+@@ -1302,6 +1303,10 @@
+ 		ar40xx_init_port(priv, i);
+ 
+ 	ar40xx_init_globals(priv);
++
++	/* switch to access MII reg for copper/fiber */
++	mdiobus_write(bus, 4, 0x1f, 0x503);
++	ar40xx_phy_mmd_write(priv, 4, 7, 0x807E, 0x0001);
+ 
+ 	return 0;
+ }
+@@ -1350,6 +1355,122 @@
+ 	return 0;
+ }
+ 
++static qca8075_phy_medium_t __phy_prefer_medium_get(struct mii_bus * bus,
++                                                   u32 phy_id)
++{
++	u16 phy_medium;
++	phy_medium =
++			mdiobus_read(bus, phy_id, QCA8075_PHY_CHIP_CONFIG);
++
++	return ((phy_medium & QCA8075_PHY4_PREFER_FIBER) ?
++		QCA8075_PHY_MEDIUM_FIBER : QCA8075_PHY_MEDIUM_COPPER);
++}
++
++/*
++ *  phy4 activer medium
++ *  get phy4 current active medium, fiber or copper;
++ */
++static qca8075_phy_medium_t __phy_active_medium_get(struct mii_bus * bus,
++                                                   u32 phy_id)
++{
++	u16 phy_data = 0;
++	u32 phy_mode;
++
++	phy_mode = mdiobus_read(bus, phy_id, QCA8075_PHY_CHIP_CONFIG);
++	//phy_mode = qca8075_phy_reg_read(dev_id, phy_id, QCA8075_PHY_CHIP_CONFIG);
++	phy_mode &= 0x000f;
++
++
++	if (phy_mode == QCA8075_PHY_PSGMII_AMDET) {
++		phy_data = mdiobus_read(bus,
++			phy_id, QCA8075_PHY_SGMII_STATUS);
++
++		if ((phy_data & QCA8075_PHY4_AUTO_COPPER_SELECT)) {
++			return QCA8075_PHY_MEDIUM_COPPER;
++		} else if ((phy_data & QCA8075_PHY4_AUTO_BX1000_SELECT)) {
++			/* PHY_MEDIUM_FIBER_BX1000 */
++			return QCA8075_PHY_MEDIUM_FIBER;
++		} else if ((phy_data & QCA8075_PHY4_AUTO_FX100_SELECT)) {
++			 /* PHY_MEDIUM_FIBER_FX100 */
++			return QCA8075_PHY_MEDIUM_FIBER;
++		}
++		/* link down */
++		return __phy_prefer_medium_get(bus, phy_id);
++
++	} else if ((phy_mode == QCA8075_PHY_PSGMII_BASET) || (phy_mode == QCA8075_PHY_SGMII_BASET)) {
++
++		return QCA8075_PHY_MEDIUM_COPPER;
++
++	} else if ((phy_mode == QCA8075_PHY_PSGMII_BX1000) ||
++			(phy_mode == QCA8075_PHY_PSGMII_FX100)) {
++		return QCA8075_PHY_MEDIUM_FIBER;
++
++	} else {
++		return QCA8075_PHY_MEDIUM_COPPER;
++	}
++}
++
++/*
++ *  phy4 copper page or fiber page select
++ *  set phy4 copper or fiber page
++ */
++
++static u8  __phy_reg_pages_sel(struct mii_bus * bus, u32 phy_id,
++		qca8075_phy_reg_pages_t phy_reg_pages)
++{
++	u16 reg_pages;
++	reg_pages = mdiobus_read(bus, phy_id, QCA8075_PHY_CHIP_CONFIG);
++
++	if (phy_reg_pages == QCA8075_PHY_COPPER_PAGES) {
++		reg_pages |= 0x8000;
++	} else if (phy_reg_pages == QCA8075_PHY_SGBX_PAGES) {
++		reg_pages &= ~0x8000;
++	} else
++		return -EINVAL;
++
++	mdiobus_write(bus, phy_id, QCA8075_PHY_CHIP_CONFIG, reg_pages);
++	return 0;
++}
++
++/*
++ *  phy4 reg pages selection by active medium
++ *  phy4 reg pages selection
++ */
++static u32 __phy_reg_pages_sel_by_active_medium(struct mii_bus * bus, u32 phy_id)
++{
++	qca8075_phy_medium_t phy_medium;
++	qca8075_phy_reg_pages_t reg_pages;
++
++	phy_medium = __phy_active_medium_get(bus, phy_id);
++
++	if (phy_medium == QCA8075_PHY_MEDIUM_FIBER) {
++		reg_pages = QCA8075_PHY_SGBX_PAGES;
++	} else if (phy_medium == QCA8075_PHY_MEDIUM_COPPER) {
++		reg_pages = QCA8075_PHY_COPPER_PAGES;
++	} else {
++		return -1;
++	}
++
++	return __phy_reg_pages_sel(bus, phy_id, reg_pages);
++}
++
++u8 qca8075_phy_get_link_status(struct mii_bus * bus, u32 phy_id)
++{
++	/*
++		 * Add auto medium detection
++		 * Steps to check:
++		 * 1. Only 5th (4 phy) port can be combo
++		 * 2. Check if combo mode is selected
++		 * 3. Check detection result
++		 * 4. Change active page
++		 */
++	if (phy_id == COMBO_PHY_ID){
++		__phy_reg_pages_sel_by_active_medium(bus, phy_id);
++	}
++
++	return 0;
++}
++
+ static void
+ ar40xx_sw_mac_polling_task(struct ar40xx_priv *priv)
+ {
+@@ -1371,8 +1492,13 @@
+ 	++task_count;
+ 
+ 	for (i = 1; i < AR40XX_NUM_PORTS; ++i) {
++
++		/*Auto detect medium and reg page*/
++		qca8075_phy_get_link_status(bus, i-1);
++
+ 		port_phy_status[i] =
+ 			mdiobus_read(bus, i-1, AR40XX_PHY_SPEC_STATUS);
++
+ 		speed = link = duplex = port_phy_status[i];
+ 		speed &= AR40XX_PHY_SPEC_STATUS_SPEED;
+ 		speed >>= 14;
+--- a/drivers/net/phy/ar40xx.h
++++ b/drivers/net/phy/ar40xx.h
+@@ -273,6 +273,41 @@
+ #define   AR40XX_PHY_SPEC_STATUS_DUPLEX		BIT(13)
+ #define   AR40XX_PHY_SPEC_STATUS_SPEED		BITS(14, 2)
+ 
++/*
++ * For auto media detection
++ */
++
++#define	COMBO_PHY_ID	4
++#define QCA8075_PHY_CHIP_CONFIG		0x1f	/* Chip Configuration Register  */
++
++#define QCA8075_PHY_PSGMII_BASET		0x0
++#define QCA8075_PHY_PSGMII_BX1000	0x1
++#define QCA8075_PHY_PSGMII_FX100		0x2
++#define QCA8075_PHY_PSGMII_AMDET		0x3
++#define QCA8075_PHY_SGMII_BASET		0x4
++
++#define QCA8075_PHY_SGMII_STATUS		0x1a	/* sgmii_status  Register  */
++#define QCA8075_PHY4_AUTO_SGMII_SELECT	0x40
++#define QCA8075_PHY4_AUTO_COPPER_SELECT	0x20
++#define QCA8075_PHY4_AUTO_BX1000_SELECT	0x10
++#define QCA8075_PHY4_AUTO_FX100_SELECT	0x8
++
++#define QCA8075_PHY4_PREFER_FIBER	0x400
++#define PHY4_PREFER_COPPER		0x0
++#define PHY4_PREFER_FIBER		0x1
++
++/* Phy medium type */
++typedef enum {
++	QCA8075_PHY_MEDIUM_COPPER = 0,
++	QCA8075_PHY_MEDIUM_FIBER = 1, /**< Fiber */
++} qca8075_phy_medium_t;
++
++/* Phy pages */
++typedef enum {
++	QCA8075_PHY_SGBX_PAGES = 0, /* sgbx pages */
++	QCA8075_PHY_COPPER_PAGES = 1 /* copper pages */
++} qca8075_phy_reg_pages_t;
++
+ /* port forwarding state */
+ enum {
+ 	AR40XX_PORT_STATE_DISABLED = 0,

@@ -1,0 +1,11 @@
+--- a/drivers/mtd/nand/raw/nand_ids.c
++++ b/drivers/mtd/nand/raw/nand_ids.c
+@@ -67,6 +67,8 @@
+ 		  SZ_2K, SZ_256, SZ_128K, 0, 2, 64 },
+ 	{"GD5F2GQ4XB 256MiB 3.3V",
+ 		{ .id = {0xc8, 0xD2} }, SZ_2K, SZ_256, SZ_128K, 0, 2, 64 },
++	{"FM25G02-DND 256MiB 3.3V",
++		{ .id = {0xa1, 0xF2} }, SZ_2K, SZ_256, SZ_128K, 0, 2, 64 },
+ 
+ 
+ 	LEGACY_ID_NAND("NAND 4MiB 5V 8-bit",   0x6B, 4, SZ_8K, SP_OPTIONS),

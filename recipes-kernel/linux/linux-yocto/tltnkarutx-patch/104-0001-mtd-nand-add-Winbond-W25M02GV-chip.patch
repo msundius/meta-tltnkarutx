@@ -1,0 +1,15 @@
+--- a/drivers/mtd/nand/raw/nand_ids.c
++++ b/drivers/mtd/nand/raw/nand_ids.c
+@@ -58,6 +58,11 @@
+ 		{ .id = {0xef, 0xaa} },
+ 		  SZ_2K, SZ_128, SZ_128K, NAND_NO_SUBPAGE_WRITE,
+ 		  2, 64, NAND_ECC_INFO(1, SZ_512) },
++	{"W25M02GV 256MiB 3.3V(Dual die)",
++		{ .id = {0xef, 0xab} },
++		  SZ_2K, SZ_256, SZ_128K, NAND_NO_SUBPAGE_WRITE,
++		  2, 64 },
++
+ 
+ 
+ 	LEGACY_ID_NAND("NAND 4MiB 5V 8-bit",   0x6B, 4, SZ_8K, SP_OPTIONS),
+

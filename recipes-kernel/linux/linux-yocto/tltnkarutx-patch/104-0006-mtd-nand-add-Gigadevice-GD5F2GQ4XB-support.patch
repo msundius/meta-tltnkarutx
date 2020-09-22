@@ -1,0 +1,11 @@
+--- a/drivers/mtd/nand/raw/nand_ids.c
++++ b/drivers/mtd/nand/raw/nand_ids.c
+@@ -65,6 +65,8 @@
+ 	{"XT26G02AWS 256MiB 3.3V",
+ 		  { .id = {0x0b, 0xE2} },
+ 		  SZ_2K, SZ_256, SZ_128K, 0, 2, 64 },
++	{"GD5F2GQ4XB 256MiB 3.3V",
++		{ .id = {0xc8, 0xD2} }, SZ_2K, SZ_256, SZ_128K, 0, 2, 64 },
+ 
+ 
+ 	LEGACY_ID_NAND("NAND 4MiB 5V 8-bit",   0x6B, 4, SZ_8K, SP_OPTIONS),
